@@ -34,3 +34,29 @@ def make_stats_dataframe(returns, benchmark_returns, portfolio_name="portfolio",
     stats_df = pd.DataFrame(stats, index=[portfolio_name])
     
     return stats_df
+
+
+def make_mulit_stats_dataframe(source_df,benchmark_col_name,portfolio_returns_col_names_list,decimals=3):
+    """uses make_stats_dataframe() to make dataframe with stats on multiple portfolios' performance
+
+    Args:
+        source_df (datafreame): a dataframe with columns for different portfolios and a benchmark where the values are they day-to-day returns as decimals  
+        benchmark_col_name (string): name of the column with benchmark data
+        portfolio_returns_col_names_list (list of strings): list of strings of the column names for the portfolio returns
+        decimals (int, optional): _description_. Defaults to 3.
+    """
+    return_df = make_stats_dataframe(source_df.loc[:,benchmark_col_name].dropna(),
+                                      source_df.loc[:,benchmark_col_name].dropna(),
+                                      portfolio_name=benchmark_col_name)
+    for portfolio_returns_col_name in portfolio_returns_col_names_list:
+        return_df = pd.concat([
+            make_stats_dataframe(
+                source_df.loc[:,portfolio_returns_col_name].dropna(),
+                source_df.loc[:,portfolio_returns_col_name].dropna(),
+                portfolio_name=portfolio_returns_col_name)
+                
+            ,return_df], axis=0)
+    
+        return_df.index.name = 'Portfolio_Name'
+
+    return(return_df)

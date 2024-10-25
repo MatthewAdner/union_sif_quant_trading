@@ -16,7 +16,7 @@ class Trading_History:
         self.trades.index.name = 'Position_Name'
         self.company_data_getter_obj = Company_Data_Getter(stock_data=stock_data,company_data=company_data)
     
-    def enter_position(self, date, ticker, shares, share_price, entry_trading_cost=0):
+    def enter_position(self, date, ticker, shares, share_price, entry_trading_cost=0, portfolio = None):
         # Create the index as a concatenation of ticker and date
         position_name = f"{ticker}_{date}"
         
@@ -26,7 +26,8 @@ class Trading_History:
             'Entry_Date': date,
             'Entry_Share_Price': share_price,
             'Shares': shares,
-            'Entry_Trading_Cost': entry_trading_cost
+            'Entry_Trading_Cost': entry_trading_cost,
+            'Portfolio': portfolio
         }
         
         # Add the row to the DataFrame, leaving unspecified columns as NaN

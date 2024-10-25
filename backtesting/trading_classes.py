@@ -99,13 +99,18 @@ class Position:
 
         return(trading_costs_dict[
             self.stock_data.at[current_date,('Size_Category',self.ticker)]])
-
+    
+    def is_it_time_to_sell(self,date):
+        if self.days_old(date)>=135:
+            return(True)
+        else:
+            return(False)
 
 
 
 
 class Portfolio:
-    def __init__(self, cash: float, date, stock_data, theo_var, std_dev_var, price_diff_var, company_data, trading_history_obj:trading_history.Trading_History = None):
+    def __init__(self, cash: float, date, stock_data, theo_var, std_dev_var, price_diff_var, company_data, trading_history_obj:trading_history.Trading_History = None, portfolio_name=None):
         """create portfolio object
 
         Args:
@@ -125,11 +130,19 @@ class Portfolio:
         self.std_dev_var = std_dev_var
         self.price_diff_var = price_diff_var
         self.company_data = company_data
+        self.portfolio_name = portfolio_name
+
+
+        self.historical_performance = pd.DataFrame(columns=[self.portfolio_name])
+        self.historical_performance.index.name = 'Date'
+
         if (trading_history_obj!= None):
             self.trading_history_obj = trading_history_obj
             self.recording_trades = True
         else:
             self.recording_trades=False
+        
+        
 
     
     def __repr__(self):
@@ -147,6 +160,9 @@ class Portfolio:
 
     def position_count(self):
         return(len(self.position_df.index)-1)
+    
+    def position_ticker_list(self):
+        return(self.position_df.index.to_list()[1:])
     
     def open_position(self, date_opened, ticker, shares):
         """_summary_
@@ -169,8 +185,15 @@ class Portfolio:
             self.position_df.loc[position.get_ticker()] = [position, position.shares, position.cost_basis, position.date_opened, 0]
             # log purchase
             if self.recording_trades:
-                self.trading_history_obj.enter_position(date=date_opened.date(), ticker=ticker,shares=shares,share_price=position.cost_basis/position.shares,entry_trading_cost=position.get_trading_cost(date_opened))
+                self.trading_history_obj.enter_position(date=date_opened.date(), ticker=ticker,shares=shares,share_price=position.cost_basis/position.shares,entry_trading_cost=position.get_trading_cost(date_opened), portfolio=self.portfolio_name)
         
+
+    def positions_to_close(self, date):
+        return_list = []
+        for ticker in self.position_ticker_list():
+            if self.position_df.at[ticker,'Position'].is_it_time_to_sell(date):
+                return_list.append(ticker)
+        return(return_list)
 
     
     def close_position(self, ticker: str, current_date: str):
@@ -188,6 +211,10 @@ class Portfolio:
 
             self.position_df.drop(index=ticker, inplace=True)
     
+    def close_positions(self, ticker_list, current_date: str):
+        for ticker in ticker_list:
+            self.close_position(ticker,current_date)
+
     def get_portfolio_value(self, date):
         """gets the value of all the positions in the portfolio on the given date"""
         self.refresh_position_df(date)
@@ -196,6 +223,10 @@ class Portfolio:
         for ticker in self.position_df.index:
             value += self.position_df.loc[ticker, 'Value']
         return value
+    
+    def add_value_snapshot(self, date):
+        self.historical_performance.loc[date] = self.get_portfolio_value(date)
+    
     
     def refresh_position_df(self, date):
         self._last_date_checked = date
