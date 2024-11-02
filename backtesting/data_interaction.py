@@ -173,69 +173,20 @@ def add_price_diff_metric(df, actual_val_col, theo_val_col, std_dev_col, new_mul
         return(return_df)
 
 
-# class Company_Data_Getter:
-#     def __init__(self, company_data, stock_data):
-#         self.company_data = company_data
-#         self.stock_data = stock_data
-        
-#     def get_sector(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.at[ticker, 'Sector'])
-
-#     def get_industry(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.at[ticker, 'Industry'])
-
-#     def get_country(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.at[ticker, 'Country'])
-
-#     def get_ipo_year(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.at[ticker, 'IPO_Year'])
-
-#     def get_exchange(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.at[ticker, 'Exchange'])
-
-#     def get_size_category(self, tickers, dates):
-#         return [self.stock_data.at[date, ('Size_Category', ticker)] for ticker, date in zip(tickers, dates)]
-
-#     def get_market_cap(self, tickers, dates):
-#         return [self.stock_data.at[date, ('Market_Cap', ticker)] for ticker, date in zip(tickers, dates)]
-
-
-# class Company_Data_Getter:
-#     def __init__(self, company_data, stock_data):
-#         self.company_data = company_data
-#         self.stock_data = stock_data
-        
-#     def get_sector(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.get(ticker, {}).get('Sector', np.nan))
-
-#     def get_industry(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.get(ticker, {}).get('Industry', np.nan))
-
-#     def get_country(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.get(ticker, {}).get('Country', np.nan))
-
-#     def get_ipo_year(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.get(ticker, {}).get('IPO_Year', np.nan))
-
-#     def get_exchange(self, tickers):
-#         return tickers.map(lambda ticker: self.company_data.get(ticker, {}).get('Exchange', np.nan))
-
-#     def get_size_category(self, tickers, dates):
-#         return [self.stock_data.get(date, {}).get(('Size_Category', ticker), np.nan) for ticker, date in zip(tickers, dates)]
-
-#     def get_market_cap(self, tickers, dates):
-#         return [self.stock_data.get(date, {}).get(('Market_Cap', ticker), np.nan) for ticker, date in zip(tickers, dates)]
-    
-
-
-
     import numpy as np  # For NaN values
 
 class Company_Data_Getter:
     def __init__(self, company_data, stock_data):
+        """helper object to get data on companies
+
+        Args:
+            company_data (dataframe): dataframe containing data on companies that doesn't change over time eg. sector
+            stock_data (dataframe): 3d datafram containing data on companies that changes over time eg. market cap
+        """
         self.company_data = company_data
         self.stock_data = stock_data
 
+    # methods for series
     def get_name(self, tickers):
         return tickers.map(lambda ticker: self._safe_get_company_data(ticker, 'Name'))
         
@@ -260,6 +211,32 @@ class Company_Data_Getter:
     def get_market_cap(self, tickers, dates):
         return [self._safe_get_stock_data(date, ('Market_Cap', ticker)) for ticker, date in zip(tickers, dates)]
     
+
+    # Methods for individual values
+    def get_name_single(self, ticker):
+        return self._safe_get_company_data(ticker, 'Name')
+        
+    def get_sector_single(self, ticker):
+        return self._safe_get_company_data(ticker, 'Sector')
+
+    def get_industry_single(self, ticker):
+        return self._safe_get_company_data(ticker, 'Industry')
+
+    def get_country_single(self, ticker):
+        return self._safe_get_company_data(ticker, 'Country')
+
+    def get_ipo_year_single(self, ticker):
+        return self._safe_get_company_data(ticker, 'IPO_Year')
+
+    def get_exchange_single(self, ticker):
+        return self._safe_get_company_data(ticker, 'Exchange')
+
+    def get_size_category_single(self, ticker, date):
+        return self._safe_get_stock_data(date, ('Size_Category', ticker))
+
+    def get_market_cap_single(self, ticker, date):
+        return self._safe_get_stock_data(date, ('Market_Cap', ticker))
+
     def _safe_get_company_data(self, ticker, column):
         try:
             return self.company_data.at[ticker, column]
