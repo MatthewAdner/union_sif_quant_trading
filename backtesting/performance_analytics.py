@@ -52,7 +52,7 @@ def make_mulit_stats_dataframe(source_df,benchmark_col_name,portfolio_returns_co
         return_df = pd.concat([
             make_stats_dataframe(
                 source_df.loc[:,portfolio_returns_col_name].dropna(),
-                source_df.loc[:,portfolio_returns_col_name].dropna(),
+                source_df.loc[:,benchmark_col_name].dropna(),
                 portfolio_name=portfolio_returns_col_name)
                 
             ,return_df], axis=0)

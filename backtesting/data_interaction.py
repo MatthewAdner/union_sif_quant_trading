@@ -1,5 +1,9 @@
 import pandas as pd
 import numpy as np
+from datetime import datetime
+
+def str_to_date_obj(date_string:str):
+    return(datetime.strptime(date_string, "%Y-%m-%d"))
 
 def select_data_subset(input_dataframe, std_dev_day_range='all', reg_day_range='all', ticker_subset='all', price_vars_to_exclude='none', start_date='none'):
     """
@@ -231,6 +235,9 @@ class Company_Data_Getter:
     def __init__(self, company_data, stock_data):
         self.company_data = company_data
         self.stock_data = stock_data
+
+    def get_name(self, tickers):
+        return tickers.map(lambda ticker: self._safe_get_company_data(ticker, 'Name'))
         
     def get_sector(self, tickers):
         return tickers.map(lambda ticker: self._safe_get_company_data(ticker, 'Sector'))
