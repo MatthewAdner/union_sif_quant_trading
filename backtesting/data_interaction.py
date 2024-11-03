@@ -5,7 +5,7 @@ from datetime import datetime
 def str_to_date_obj(date_string:str):
     return(datetime.strptime(date_string, "%Y-%m-%d"))
 
-def select_data_subset(input_dataframe, std_dev_day_range='all', reg_day_range='all', ticker_subset='all', price_vars_to_exclude='none', start_date='none'):
+def select_data_subset(input_dataframe, std_dev_day_range='all', reg_day_range='all', ticker_subset='all', price_vars_to_exclude=None, start_date=None, sort_cols = True):
     """
     Selects a subset of stock data based on a variety of factors.
 
@@ -14,15 +14,15 @@ def select_data_subset(input_dataframe, std_dev_day_range='all', reg_day_range='
         std_dev_day_range (str, list, optional): Leave as 'all' to include everything, give an int or a list of ints to select only std_devs over that/those periods. Defaults to 'all'.
         reg_day_range (list, optional): Leave as 'all' to include everything, give an int or a list of ints to select only reg values (intercept and coeffs) over that/those periods. Defaults to 'all'.
         ticker_subset (list, optional): Leave as 'all' to include all tickers, or give a list of ticker(s) to keep. Defaults to 'all'.
-        price_vars_to_exclude (list, optional): Leave as 'none' to include all price vars, or give a list of price variables to exclude. Defaults to 'none'.
-        start_date (str, optional): The date before which you don't want data, in the format 'YYYY-MM-DD'. Defaults to 'none'.
-
+        price_vars_to_exclude (list, optional): Leave as None to include all price vars, or give a list of price variables to exclude. Defaults to None.
+        start_date (str, optional): The date before which you don't want data, in the format 'YYYY-MM-DD'. Defaults to None.
+        sort_cols (bool, optional): Set to true if you want to sort the columns alphabetically, first by Prive Var, then by ticker Defaults to True.
     Returns:
         pandas dataframe: Filtered DataFrame based on the specified criteria.
     """
 
     # filter date
-    if start_date != 'none':
+    if start_date != None:
         return_df = input_dataframe[input_dataframe.index > start_date]
     else:
         return_df = input_dataframe
@@ -35,7 +35,7 @@ def select_data_subset(input_dataframe, std_dev_day_range='all', reg_day_range='
         return_cols = list(x for x in return_cols if x[1] in (ticker_subset+['']) )
     
     # exclude price vars
-    if price_vars_to_exclude != 'none':
+    if price_vars_to_exclude != None:
         return_cols = list({x for x in return_cols if x[0] not in price_vars_to_exclude})
     
     # filter std dev day ranges
@@ -83,8 +83,12 @@ def select_data_subset(input_dataframe, std_dev_day_range='all', reg_day_range='
     #               ((x[0].split('_')[0]=='Intercept' or x[0].split('_')[-2]=='Coeff') and (not x[0].endswith(reg_day_range))))
     #     )
     
-    if not((ticker_subset == 'all') and (price_vars_to_exclude =='none') and (std_dev_day_range=='all') and (reg_day_range=='all')):
+    if not((ticker_subset == 'all') and (price_vars_to_exclude == None) and (std_dev_day_range=='all') and (reg_day_range=='all')):
         return_df = return_df[return_cols]
+
+    # sort columns if desired
+    if sort_cols:
+        return_df = return_df.sort_index(axis=1,level=[0,1])
 
     return(return_df)
 
@@ -173,7 +177,6 @@ def add_price_diff_metric(df, actual_val_col, theo_val_col, std_dev_col, new_mul
         return(return_df)
 
 
-    import numpy as np  # For NaN values
 
 class Company_Data_Getter:
     def __init__(self, company_data, stock_data):
@@ -185,6 +188,50 @@ class Company_Data_Getter:
         """
         self.company_data = company_data
         self.stock_data = stock_data
+        
+        self.large_countries = {
+            "United States": "United States", "China": "China", "Canada": "Canada", "Israel": "Israel", "United Kingdom": "United Kingdom", "Singapore": "Singapore", "Hong Kong": "Hong Kong","Cayman Islands": "Cayman Islands", "Bermuda": "Bermuda",
+            "Brazil": "Brazil","Australia": "Australia","Ireland": "Ireland","Netherlands": "Netherlands","Switzerland": "Switzerland","Greece": "Greece","Luxembourg": "Luxembourg","Japan": "Japan","Taiwan": "Taiwan","Germany": "Germany",
+            "Malaysia": "Malaysia","Argentina": "Argentina","France": "France","Mexico": "Mexico"
+        }
+        
+        # Grouped countries for regions
+        self.regions = {
+            "Caribbean and Latin America": [
+                "Chile", "Colombia", "Uruguay", "Puerto Rico", "Panama", "Bahamas", "Costa Rica", "Curacao", "British Virgin Islands"
+            ],
+            "Western Europe": ["Belgium"],
+            "Southern Europe": ["Italy", "Cyprus", "Monaco"],
+            "Nordic Countries": ["Sweden", "Denmark", "Norway", "Finland"],
+            "Channel Islands": ["Jersey", "Guernsey", "Isle of Man", "Gibraltar"],
+            "East Asia": ["South Korea", "Macau"],
+            "Southeast Asia": ["Thailand", "Philippines", "Indonesia"],
+            "Oceania": ["New Zealand"],
+            "Middle East": ["United Arab Emirates", "Turkey", "Jordan"],
+            "Eastern Europe/Central Asia": ["Kazakhstan"],
+            "Africa": ["South Africa"],
+            "No Country Data":[""," "]
+        }
+
+        # Flatten the region dictionary to look up region by country
+        self.country_to_region = {country: region for region, countries in self.regions.items() for country in countries}
+        
+    
+        # Dictionary to store industries with less than 10 entries
+        self.small_industries = {}
+
+        # Get the value counts for industries in the company_data DataFrame
+        industry_counts = self.company_data['Industry'].value_counts()
+
+        # Loop through industries with fewer than 10 entries
+        for industry, count in industry_counts.items():
+            if count < 10:
+                # Get the sector of the industry
+                sector = self.company_data[self.company_data['Industry'] == industry]['Sector'].iloc[0]
+                # Map industry to "Sector: Other"
+                self.small_industries[industry] = f"{sector}: Other"
+                
+                
 
     # methods for series
     def get_name(self, tickers):
@@ -212,6 +259,15 @@ class Company_Data_Getter:
         return [self._safe_get_stock_data(date, ('Market_Cap', ticker)) for ticker, date in zip(tickers, dates)]
     
 
+    def get_country_region(self, tickers):
+        """Returns a dictionary of regions for a list of tickers."""
+        return {ticker: self.get_country_region_single(ticker) for ticker in tickers}
+    
+    def get_industry_category(self, tickers):
+        """Returns a dictionary of categorized industries for a list of tickers."""
+        return {ticker: self.get_industry_category_single(ticker) for ticker in tickers}
+
+
     # Methods for individual values
     def get_name_single(self, ticker):
         return self._safe_get_company_data(ticker, 'Name')
@@ -236,6 +292,31 @@ class Company_Data_Getter:
 
     def get_market_cap_single(self, ticker, date):
         return self._safe_get_stock_data(date, ('Market_Cap', ticker))
+
+    def get_country_region_single(self, ticker):
+        """Returns the region for a single ticker by first finding its country."""
+        country = self.get_country_single(ticker)
+        
+        # Check if the country is in the large countries list
+        if country in self.large_countries:
+            return self.large_countries[country]
+        
+        # Check grouped regions for smaller countries
+        return self.country_to_region.get(country, "Uncategorized Region")
+
+    def get_industry_category_single(self, ticker):
+        """Returns the categorized industry for a single ticker."""
+        # Get the industry associated with the ticker
+        industry = self.get_industry_single(ticker)
+        
+        # Check if the industry is categorized as a small industry
+        if industry in self.small_industries:
+            return self.small_industries[industry]
+        
+        # If not a small industry, return the industry as is
+        return industry
+
+
 
     def _safe_get_company_data(self, ticker, column):
         try:
