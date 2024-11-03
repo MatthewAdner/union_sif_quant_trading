@@ -55,33 +55,11 @@ def select_data_subset(input_dataframe, std_dev_day_range='all', reg_day_range='
             if (x[0].split('_')[0] == 'Intercept' or 
                 (len(x[0].split('_')) > 1 and x[0].split('_')[-2] == 'Coeff') )
                 ]
-        # print(bad_reg_cols)
-        # bad_reg_cols = {x for x in bad_reg_cols if any(a in x for a in reg_day_range)}
-        # print({x[0] for x in bad_reg_cols})
-        # print(bad_reg_cols[0:10])
+
         bad_reg_cols = {x for x in bad_reg_cols if not any(str(a) in x[0] for a in reg_day_range)}
-        # print({x[0] for x in bad_reg_cols})
         return_cols = list(set(return_cols) - set(bad_reg_cols))
 
-    #     reg_day_range = tuple(str(x) for x in reg_day_range)
-    #     print(return_cols[-10:])
-    #     return_cols = list(
-    #         set(return_cols)
-    #         - set( x for x in return_cols if 
-    #             #   ((x[0].startswith('Intercept_') or x[0].split('_')[-2]=='Coeff') and (not x[0].endswith(reg_day_range))))
-    #               ((x[0].split('_')[0]=='Intercept' or x[0].split('_')[-2]=='Coeff') and (not x[0].endswith(reg_day_range))))
-    #     )
 
-    # filter regression day ranges
-    # if reg_day_range != 'all':
-    #     reg_day_range = tuple(str(x) for x in reg_day_range)
-    #     print(return_cols[-10:])
-    #     return_cols = list(
-    #         set(return_cols)
-    #         - set( x for x in return_cols if 
-    #             #   ((x[0].startswith('Intercept_') or x[0].split('_')[-2]=='Coeff') and (not x[0].endswith(reg_day_range))))
-    #               ((x[0].split('_')[0]=='Intercept' or x[0].split('_')[-2]=='Coeff') and (not x[0].endswith(reg_day_range))))
-    #     )
     
     if not((ticker_subset == 'all') and (price_vars_to_exclude == None) and (std_dev_day_range=='all') and (reg_day_range=='all')):
         return_df = return_df[return_cols]
